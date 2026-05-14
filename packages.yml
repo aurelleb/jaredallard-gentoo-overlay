@@ -243,6 +243,20 @@ gui-apps/vicinae:
           echo "Packaging node_modules ($npm_pkg)"
           XZ_OPT=-e9T0 tar cJf "npm-$npm_pkg-node_modules.tar.xz" "$npm_pkg_dir/$npm_pkg/node_modules"
         done
+
+        # Add pkg_postinst for vicinae-input-server capabilities and uinput module
+        cat >> new.ebuild <<'EOF'
+
+        pkg_postinst() {
+          setcap "cap_dac_override+ep" "${EROOT}/usr/libexec/vicinae/vicinae-input-server" \
+            || ewarn "Failed to setcap on vicinae-input-server: input monitoring may not work."
+
+          if [[ -z "${ROOT}" ]]; then
+            modprobe uinput \
+              || ewarn "Failed to modprobe uinput: snippets and paste may not work, or only after a reboot."
+          fi
+        }
+        EOF
     - upload_artifact: npm-api-node_modules.tar.xz
     - upload_artifact: npm-extension-manager-node_modules.tar.xz
     - ebuild: new.ebuild
